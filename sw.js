@@ -1,4 +1,4 @@
-const CACHE_NAME = 'app-ponto-pessoal-v3';
+const CACHE_NAME = 'app-ponto-pessoal-v4';
 const BASE = '/app-ponto-pessoal/';
 const FILES = [
   BASE,
