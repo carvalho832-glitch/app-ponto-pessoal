@@ -1,4 +1,4 @@
-const CACHE_NAME = 'app-ponto-pessoal-v4';
+const CACHE_NAME = 'app-ponto-pessoal-v8';
 const BASE = '/app-ponto-pessoal/';
 const FILES = [
   BASE,
@@ -30,17 +30,29 @@ self.addEventListener('fetch', event => {
 
   const url = new URL(event.request.url);
   const isHtml = url.pathname === BASE || url.pathname === BASE + 'index.html';
+  const isScriptOrStyle = url.pathname.endsWith('.js') || url.pathname.endsWith('.css');
 
   if (isHtml) {
-    event.respondWith(fetch(event.request).then(response => response.text()).then(html => {
-      let body = html;
-      if (!body.includes('holerite-refinado.js')) {
-        body = body.replace('</body>', '<script src="holerite-refinado.js"></script></body>');
-      }
-      return new Response(body, {
-        headers: { 'Content-Type': 'text/html; charset=utf-8' }
-      });
-    }).catch(() => caches.match(BASE + 'index.html')));
+    event.respondWith(
+      fetch(event.request).then(response => response.text()).then(html => {
+        let body = html;
+        if (!body.includes('holerite-refinado.js')) {
+          body = body.replace('</body>', '<script src="holerite-refinado.js?v=8"></script></body>');
+        }
+        return new Response(body, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+      }).catch(() => caches.match(BASE + 'index.html'))
+    );
+    return;
+  }
+
+  if (isScriptOrStyle) {
+    event.respondWith(
+      fetch(event.request).then(networkResponse => {
+        const copy = networkResponse.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+        return networkResponse;
+      }).catch(() => caches.match(event.request))
+    );
     return;
   }
 
