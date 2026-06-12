@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101623">
+  <title>App Ponto Pessoal</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topo">
+      <div><p class="mini">Controle pessoal</p><h1>App Ponto</h1></div>
+      <div class="status"><span id="statusBolinha"></span><b id="statusTexto">Aguardando</b></div>
+    </header>
+
+    <main class="tela ativa" id="telaHoje">
+      <section class="box linha">
+        <div><p class="label">Data selecionada</p><input type="date" id="dataSelecionada"></div>
+        <button id="btnHoje">Hoje</button>
+      </section>
+      <section class="box escala">
+        <h3>Sua jornada padrão</h3>
+        <p>Segunda a sexta: <b>15:30 às 01:00 +1</b><br>Descanso: <b>19:00 às 20:00</b><br>Carga oficial: <b>08h48</b><br>Ajuste RH automático: <b>até 00h18</b></p>
+        <button id="btnPadrao" class="ok full">Preencher minha jornada padrão</button>
+      </section>
+      <section class="grid main"><div class="card azul"><p>Trabalhado no ponto</p><h2 id="totalPonto">00h00</h2></div><div class="card"><p>Saldo</p><h2 id="saldoDia">00h00</h2></div></section>
+      <section class="grid">
+        <div class="card"><p>Ajuste RH</p><b id="ajusteRH">00h00</b></div>
+        <div class="card"><p>Total considerado</p><b id="totalConsiderado">00h00</b></div>
+        <div class="card"><p>Descanso</p><b id="totalDescanso">00h00</b></div>
+        <div class="card"><p>Ad. Noturno</p><b id="adNoturno">00h00</b></div>
+        <div class="card"><p>EX60%</p><b id="ex60">00h00</b></div>
+        <div class="card"><p>EX100%</p><b id="ex100">00h00</b></div>
+      </section>
+      <section class="box"><h3>Estimativa em dinheiro</h3><p class="valor"><span>EX60%</span><b id="valorEx60">R$ 0,00</b></p><p class="valor"><span>EX100%</span><b id="valorEx100">R$ 0,00</b></p><p class="valor"><span>Adicional noturno</span><b id="valorNoturno">R$ 0,00</b></p></section>
+      <section class="box"><h3>Marcações do dia</h3><div id="marcacoes"></div><label class="check"><input type="checkbox" id="dia100"> Considerar este dia como EX100%</label><textarea id="observacao" placeholder="Observação do dia..."></textarea><button id="btnApagar" class="danger full">Apagar marcações deste dia</button></section>
+    </main>
+
+    <main class="tela" id="telaMes"><section class="box"><div class="linha"><h3>Resumo mensal</h3><input type="month" id="mesResumo"></div><section class="grid mes"><div class="card"><p>Normais</p><b id="mesNormais">00:00</b></div><div class="card"><p>Ajuste RH</p><b id="mesAjusteRH">00:00</b></div><div class="card"><p>EX60%</p><b id="mesEx60">00:00</b></div><div class="card"><p>EX100%</p><b id="mesEx100">00:00</b></div><div class="card"><p>Noturno</p><b id="mesNoturno">00:00</b></div><div class="card"><p>Descanso</p><b id="mesDescanso">00:00</b></div><div class="card"><p>Dias trabalhados</p><b id="mesDiasTrabalhados">0</b></div><div class="card"><p>Folgas</p><b id="mesFolgas">0</b></div></section><p class="valor total"><span>Saldo mensal</span><b id="mesSaldo">+00:00</b></p><button id="btnHolerite" class="ok full">Gerar holerite pessoal</button><div id="holeritePessoal" class="holerite"></div></section></main>
+    <main class="tela" id="telaHistorico"><section class="box"><div class="linha"><h3>Histórico</h3><button id="btnCSV">Exportar CSV</button></div><div id="listaHistorico"></div></section></main>
+    <main class="tela" id="telaConfig"><section class="box"><h3>Configurações</h3><div class="form" id="configForm"></div><p class="aviso">Prévia para controle pessoal. Ajuste os valores conforme seu holerite real.</p></section></main>
+
+    <nav class="nav"><button data-tab="Hoje" class="ativo">Hoje</button><button data-tab="Mes">Mês</button><button data-tab="Historico">Histórico</button><button data-tab="Config">Config</button></nav>
+    <div class="modal" id="modal"><div><h3 id="tituloModal">Editar</h3><label>Novo horário<input type="time" id="inputEdit"></label><section class="linha"><button id="btnCancelar" class="ghost">Cancelar</button><button id="btnSalvarEdit">Salvar</button></section></div></div>
+  </div>
+  <script src="script.js?v=2"></script>
+  <script src="features.js?v=2"></script>
+  <script src="holerite-refinado.js?v=2"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('./sw.js');
+      });
+    }
+  </script>
+</body>
+</html>
