@@ -1,5 +1,5 @@
 (function () {
-  const EXTRA_KEY = 'app_ponto_extras_v1';
+  const EXTRA_KEY = 'app_ponto_extras_v2';
   const REG_KEY = 'app_ponto_pessoal_registros_v9';
   const CFG_KEY = 'app_ponto_pessoal_config_v9';
 
@@ -9,8 +9,8 @@
     vibrate: true,
     reminders: {
       entrada: '15:25',
-      saidaDescanso: '18:58',
-      voltaDescanso: '19:58',
+      saidaDescanso: '21:00',
+      voltaDescanso: '22:00',
       saidaFinal: '00:55'
     }
   };
@@ -23,9 +23,9 @@
 
   function loadExtra() {
     try {
-      return { ...defaults, ...(JSON.parse(localStorage.getItem(EXTRA_KEY) || '{}')) };
+      return Object.assign({}, defaults, JSON.parse(localStorage.getItem(EXTRA_KEY) || '{}'));
     } catch (e) {
-      return { ...defaults };
+      return Object.assign({}, defaults);
     }
   }
 
@@ -35,14 +35,32 @@
 
   function initExtras() {
     injectStyle();
+    ensureHoleriteRefinado();
     addMonthTools();
     addHistoryTools();
     addReminderTools();
     startReminderLoop();
   }
 
+  function ensureHoleriteRefinado() {
+    if (document.getElementById('scriptHoleriteRefinado')) return;
+
+    const script = document.createElement('script');
+    script.id = 'scriptHoleriteRefinado';
+    script.src = 'holerite-refinado.js?v=7';
+    script.onload = function () {
+      if (typeof window.gerarHoleriteRefinado === 'function') {
+        setTimeout(function () {}, 50);
+      }
+    };
+    document.body.appendChild(script);
+  }
+
   function injectStyle() {
+    if (document.getElementById('extraStyle')) return;
+
     const style = document.createElement('style');
+    style.id = 'extraStyle';
     style.textContent = `
       .extra-box{margin-top:14px}
       .extra-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
@@ -86,12 +104,16 @@
     holerite.insertAdjacentElement('afterend', box);
     $('graficoMensal').style.display = 'none';
 
-    $('btnPDF').addEventListener('click', () => {
-      if (typeof gerarHoleritePessoal === 'function') gerarHoleritePessoal();
-      setTimeout(() => window.print(), 250);
+    $('btnPDF').addEventListener('click', function () {
+      if (typeof window.gerarHoleriteRefinado === 'function') {
+        window.gerarHoleriteRefinado();
+      } else if (typeof gerarHoleritePessoal === 'function') {
+        gerarHoleritePessoal();
+      }
+      setTimeout(function () { window.print(); }, 250);
     });
 
-    $('btnGrafico').addEventListener('click', () => {
+    $('btnGrafico').addEventListener('click', function () {
       const canvas = $('graficoMensal');
       canvas.style.display = canvas.style.display === 'none' ? 'block' : 'none';
       if (canvas.style.display !== 'none') drawMonthlyChart();
@@ -117,7 +139,7 @@
 
     tela.appendChild(section);
     $('btnBackup').addEventListener('click', exportBackup);
-    $('btnImportar').addEventListener('click', () => $('inputBackup').click());
+    $('btnImportar').addEventListener('click', function () { $('inputBackup').click(); });
     $('inputBackup').addEventListener('change', importBackup);
   }
 
@@ -155,12 +177,14 @@
     $('remWeekdays').checked = !!extra.onlyWeekdays;
     $('remVibrate').checked = !!extra.vibrate;
 
-    ['remEntrada', 'remSaidaDescanso', 'remVoltaDescanso', 'remSaidaFinal', 'remWeekdays', 'remVibrate'].forEach(id => {
+    ['remEntrada', 'remSaidaDescanso', 'remVoltaDescanso', 'remSaidaFinal', 'remWeekdays', 'remVibrate'].forEach(function (id) {
       $(id).addEventListener('change', saveReminderForm);
     });
 
     $('btnAtivarNotif').addEventListener('click', enableNotifications);
-    $('btnTestarNotif').addEventListener('click', () => showNotification('Teste do App Ponto', 'Se apareceu, os lembretes estão prontos.'));
+    $('btnTestarNotif').addEventListener('click', function () {
+      showNotification('Teste do App Ponto', 'Se apareceu, os lembretes estão prontos.');
+    });
     updateNotificationStatus();
   }
 
@@ -201,12 +225,12 @@
       return;
     }
 
-    status.textContent = `Status: ${Notification.permission}${extra.remindersEnabled ? ' / ligado' : ' / desligado'}`;
+    status.textContent = 'Status: ' + Notification.permission + (extra.remindersEnabled ? ' / ligado' : ' / desligado');
   }
 
   function startReminderLoop() {
     setInterval(checkReminders, 30000);
-    document.addEventListener('visibilitychange', () => {
+    document.addEventListener('visibilitychange', function () {
       if (!document.hidden) checkReminders();
     });
     setTimeout(checkReminders, 1500);
@@ -217,7 +241,7 @@
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
 
     const now = new Date();
-    const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const hhmm = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
 
     const items = [
       ['entrada', 'Hora de bater entrada'],
@@ -226,12 +250,12 @@
       ['saidaFinal', 'Hora de bater saída']
     ];
 
-    items.forEach(([key, title]) => {
+    items.forEach(function ([key, title]) {
       if (extra.reminders[key] !== hhmm) return;
       if (!shouldNotifyToday(key, now)) return;
 
       const dayKey = reminderDayKey(key, now);
-      const lastKey = `app_ponto_last_${dayKey}_${key}_${hhmm}`;
+      const lastKey = 'app_ponto_last_' + dayKey + '_' + key + '_' + hhmm;
       if (localStorage.getItem(lastKey)) return;
 
       localStorage.setItem(lastKey, '1');
@@ -241,14 +265,9 @@
 
   function shouldNotifyToday(key, now) {
     if (!extra.onlyWeekdays) return true;
-
     const ref = new Date(now);
     const minutesNow = now.getHours() * 60 + now.getMinutes();
-
-    if (key === 'saidaFinal' && minutesNow < 5 * 60) {
-      ref.setDate(ref.getDate() - 1);
-    }
-
+    if (key === 'saidaFinal' && minutesNow < 5 * 60) ref.setDate(ref.getDate() - 1);
     const day = ref.getDay();
     return day >= 1 && day <= 5;
   }
@@ -256,12 +275,8 @@
   function reminderDayKey(key, now) {
     const ref = new Date(now);
     const minutesNow = now.getHours() * 60 + now.getMinutes();
-
-    if (key === 'saidaFinal' && minutesNow < 5 * 60) {
-      ref.setDate(ref.getDate() - 1);
-    }
-
-    return `${ref.getFullYear()}-${String(ref.getMonth() + 1).padStart(2, '0')}-${String(ref.getDate()).padStart(2, '0')}`;
+    if (key === 'saidaFinal' && minutesNow < 5 * 60) ref.setDate(ref.getDate() - 1);
+    return ref.getFullYear() + '-' + String(ref.getMonth() + 1).padStart(2, '0') + '-' + String(ref.getDate()).padStart(2, '0');
   }
 
   async function showNotification(title, body) {
@@ -273,7 +288,7 @@
     }
 
     const options = {
-      body,
+      body: body,
       icon: 'icon.svg',
       badge: 'icon.svg',
       tag: 'app-ponto-reminder',
@@ -291,7 +306,7 @@
   function exportBackup() {
     const payload = {
       app: 'App Ponto Pessoal',
-      version: 1,
+      version: 2,
       exportedAt: new Date().toISOString(),
       registros: safeJSON(localStorage.getItem(REG_KEY), {}),
       config: safeJSON(localStorage.getItem(CFG_KEY), {}),
@@ -302,9 +317,9 @@
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `backup-app-ponto-${todayISO()}.json`;
+    link.download = 'backup-app-ponto-' + todayISO() + '.json';
     link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 500);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 500);
   }
 
   function importBackup(event) {
@@ -312,7 +327,7 @@
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = function () {
       try {
         const data = JSON.parse(reader.result);
         if (!data.registros) throw new Error('Backup inválido');
@@ -339,12 +354,12 @@
     const height = canvas.height;
     ctx.clearRect(0, 0, width, height);
 
-    const registros = safeJSON(localStorage.getItem(REG_KEY), {});
-    const mes = $('mesResumo')?.value || todayISO().slice(0, 7);
+    const dados = safeJSON(localStorage.getItem(REG_KEY), {});
+    const mes = ($('mesResumo') && $('mesResumo').value) || todayISO().slice(0, 7);
     const days = datesOfMonth(mes);
 
-    const values = days.map(date => {
-      const registro = registros[date];
+    const values = days.map(function (date) {
+      const registro = dados[date];
       if (!registro || typeof calcularDia !== 'function') return 0;
       const calc = calcularDia(registro);
       return Math.round((calc.totalConsiderado || 0) / 60 * 100) / 100;
@@ -369,7 +384,7 @@
       ctx.stroke();
     }
 
-    values.forEach((value, index) => {
+    values.forEach(function (value, index) {
       const h = (value / max) * chartH;
       const x = pad + index * barW + 2;
       const y = height - pad - h;
@@ -380,7 +395,7 @@
     ctx.fillStyle = '#b7c5e4';
     ctx.font = '12px Arial';
     ctx.fillText('Horas trabalhadas no mês', pad, 20);
-    ctx.fillText(`${max.toFixed(0)}h`, 6, pad + 6);
+    ctx.fillText(max.toFixed(0) + 'h', 6, pad + 6);
     ctx.fillText('0h', 10, height - pad);
   }
 
@@ -394,21 +409,23 @@
 
   function todayISO() {
     const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
   function datesOfMonth(monthISO) {
-    const [year, month] = monthISO.split('-').map(Number);
+    const parts = monthISO.split('-').map(Number);
+    const year = parts[0];
+    const month = parts[1];
     const last = new Date(year, month, 0).getDate();
     const out = [];
     for (let day = 1; day <= last; day++) {
-      out.push(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+      out.push(year + '-' + String(month).padStart(2, '0') + '-' + String(day).padStart(2, '0'));
     }
     return out;
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => setTimeout(initExtras, 500));
+    document.addEventListener('DOMContentLoaded', function () { setTimeout(initExtras, 500); });
   } else {
     setTimeout(initExtras, 500);
   }
