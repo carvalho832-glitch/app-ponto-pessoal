@@ -1,10 +1,11 @@
-const CACHE_NAME = 'app-ponto-pessoal-v1';
+const CACHE_NAME = 'app-ponto-pessoal-v2';
 const BASE = '/app-ponto-pessoal/';
 const FILES = [
   BASE,
   BASE + 'index.html',
   BASE + 'style.css',
   BASE + 'script.js',
+  BASE + 'features.js',
   BASE + 'manifest.json',
   BASE + 'icon.svg'
 ];
