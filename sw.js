@@ -1,10 +1,11 @@
-const CACHE_NAME = 'app-ponto-pessoal-v8';
+const CACHE_NAME = 'app-ponto-pessoal-v10';
 const BASE = '/app-ponto-pessoal/';
 const FILES = [
   BASE,
   BASE + 'index.html',
   BASE + 'style.css',
   BASE + 'script.js',
+  BASE + 'folgas.js',
   BASE + 'features.js',
   BASE + 'holerite-refinado.js',
   BASE + 'manifest.json',
@@ -36,8 +37,11 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       fetch(event.request).then(response => response.text()).then(html => {
         let body = html;
+        if (!body.includes('folgas.js')) {
+          body = body.replace('<script src="features.js', '<script src="folgas.js?v=1"></script>\n  <script src="features.js');
+        }
         if (!body.includes('holerite-refinado.js')) {
-          body = body.replace('</body>', '<script src="holerite-refinado.js?v=8"></script></body>');
+          body = body.replace('</body>', '<script src="holerite-refinado.js?v=10"></script></body>');
         }
         return new Response(body, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
       }).catch(() => caches.match(BASE + 'index.html'))
