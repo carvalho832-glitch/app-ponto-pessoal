@@ -17,13 +17,11 @@
     const campo = $('mesFolgas');
     if (!campo || !campo.parentElement) return;
     const label = campo.parentElement.querySelector('p');
-    if (label) label.textContent = 'Folgas ganhas';
-    campo.parentElement.title = 'Conta 1 folga quando sábado e domingo do mesmo final de semana foram trabalhados.';
+    if (label) label.textContent = 'Folgas acumuladas';
+    campo.parentElement.title = 'Banco cumulativo: soma 1 folga quando sábado e domingo do mesmo final de semana foram trabalhados.';
   }
 
   function substituirResumoMensal() {
-    const resumoOriginal = window.renderizarResumoMensal;
-
     window.renderizarResumoMensal = function () {
       const mesEl = $('mesResumo');
       const mes = (mesEl && mesEl.value) || hojeMesLocal();
@@ -57,7 +55,7 @@
         saldo += calculo.saldo;
       });
 
-      const folgasGanhas = calcularFolgasGanhas(mes);
+      const folgasAcumuladas = calcularFolgasAcumuladas(mes);
 
       setText('mesNormais', minutosParaHoraLongaLocal(normais));
       setText('mesAjusteRH', minutosParaHoraLongaLocal(ajuste));
@@ -66,7 +64,7 @@
       setText('mesNoturno', minutosParaHoraLongaLocal(noturno));
       setText('mesDescanso', minutosParaHoraLongaLocal(descanso));
       setText('mesDiasTrabalhados', dias);
-      setText('mesFolgas', folgasGanhas);
+      setText('mesFolgas', folgasAcumuladas);
       setText('mesSaldo', formatarSaldoLongoLocal(saldo));
       ajustarLabelFolgas();
     };
@@ -86,26 +84,50 @@
       }, 120);
     });
 
-    if (resumoOriginal && typeof resumoOriginal === 'function') {
-      setTimeout(window.renderizarResumoMensal, 80);
+    setTimeout(window.renderizarResumoMensal, 80);
+  }
+
+  function calcularFolgasAcumuladas(mesLimite) {
+    const chaves = Object.keys(window.registros || {}).sort();
+    if (!chaves.length) return 0;
+
+    let inicio = primeiroSabadoAntesOuIgual(chaves[0]);
+    const fim = ultimoDiaDoMes(mesLimite);
+    let total = 0;
+
+    while (inicio <= fim) {
+      const domingo = addDaysISO(inicio, 1);
+      if (domingo <= fim && diaTrabalhado(inicio) && diaTrabalhado(domingo)) {
+        total++;
+      }
+      inicio = addDaysISO(inicio, 7);
     }
+
+    return total;
   }
 
   function calcularFolgasGanhas(mes) {
     let total = 0;
-    const datas = datasDoMesLocal(mes);
-
-    datas.forEach(function (data) {
+    datasDoMesLocal(mes).forEach(function (data) {
       const d = new Date(data + 'T12:00:00');
       if (d.getDay() !== 6) return;
-
       const domingo = addDaysISO(data, 1);
       if (domingo.slice(0, 7) !== mes) return;
-
       if (diaTrabalhado(data) && diaTrabalhado(domingo)) total++;
     });
-
     return total;
+  }
+
+  function primeiroSabadoAntesOuIgual(dataISO) {
+    const d = new Date(dataISO + 'T12:00:00');
+    while (d.getDay() !== 6) d.setDate(d.getDate() - 1);
+    return toISODate(d);
+  }
+
+  function ultimoDiaDoMes(mes) {
+    const partes = mes.split('-').map(Number);
+    const d = new Date(partes[0], partes[1], 0, 12, 0, 0);
+    return toISODate(d);
   }
 
   function diaTrabalhado(data) {
@@ -118,6 +140,10 @@
   function addDaysISO(dataISO, dias) {
     const d = new Date(dataISO + 'T12:00:00');
     d.setDate(d.getDate() + dias);
+    return toISODate(d);
+  }
+
+  function toISODate(d) {
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
@@ -166,6 +192,7 @@
   }
 
   window.calcularFolgasGanhas = calcularFolgasGanhas;
+  window.calcularFolgasAcumuladas = calcularFolgasAcumuladas;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
