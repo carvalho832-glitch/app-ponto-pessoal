@@ -1,4 +1,4 @@
-const CACHE_NAME = 'app-ponto-pessoal-v11';
+const CACHE_NAME = 'app-ponto-pessoal-v12';
 const BASE = '/app-ponto-pessoal/';
 const FILES = [
   BASE,
@@ -9,6 +9,7 @@ const FILES = [
   BASE + 'features.js',
   BASE + 'folha-ponto.js',
   BASE + 'holerite-refinado.js',
+  BASE + 'status-dia.js',
   BASE + 'manifest.json',
   BASE + 'icon.svg'
 ];
@@ -39,13 +40,16 @@ self.addEventListener('fetch', event => {
       fetch(event.request).then(response => response.text()).then(html => {
         let body = html;
         if (!body.includes('folgas.js')) {
-          body = body.replace('<script src="features.js', '<script src="folgas.js?v=2"></script>\n  <script src="features.js');
+          body = body.replace('<script src="features.js', '<script src="folgas.js?v=3"></script>\n  <script src="features.js');
         }
         if (!body.includes('folha-ponto.js')) {
-          body = body.replace('<script src="holerite-refinado.js', '<script src="folha-ponto.js?v=1"></script>\n  <script src="holerite-refinado.js');
+          body = body.replace('<script src="holerite-refinado.js', '<script src="folha-ponto.js?v=2"></script>\n  <script src="holerite-refinado.js');
         }
         if (!body.includes('holerite-refinado.js')) {
-          body = body.replace('</body>', '<script src="holerite-refinado.js?v=11"></script></body>');
+          body = body.replace('</body>', '<script src="holerite-refinado.js?v=12"></script></body>');
+        }
+        if (!body.includes('status-dia.js')) {
+          body = body.replace('</body>', '<script src="status-dia.js?v=1"></script></body>');
         }
         return new Response(body, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
       }).catch(() => caches.match(BASE + 'index.html'))
