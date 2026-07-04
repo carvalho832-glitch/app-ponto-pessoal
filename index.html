@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#101623">
   <title>App Ponto Pessoal</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=11">
+  <link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
   <div class="app">
@@ -48,15 +48,16 @@
     <nav class="nav"><button data-tab="Hoje" class="ativo">Hoje</button><button data-tab="Mes">Mês</button><button data-tab="Historico">Histórico</button><button data-tab="Config">Config</button></nav>
     <div class="modal" id="modal"><div><h3 id="tituloModal">Editar</h3><label>Novo horário<input type="time" id="inputEdit"></label><section class="linha"><button id="btnCancelar" class="ghost">Cancelar</button><button id="btnSalvarEdit">Salvar</button></section></div></div>
   </div>
-  <script src="script.js?v=11"></script>
-  <script src="folgas.js?v=2"></script>
-  <script src="features.js?v=11"></script>
-  <script src="folha-ponto.js?v=1"></script>
-  <script src="holerite-refinado.js?v=11"></script>
+  <script src="script.js?v=12"></script>
+  <script src="folgas.js?v=3"></script>
+  <script src="features.js?v=12"></script>
+  <script src="folha-ponto.js?v=2"></script>
+  <script src="holerite-refinado.js?v=12"></script>
+  <script src="status-dia.js?v=1"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('./sw.js?v=11');
+        navigator.serviceWorker.register('./sw.js?v=12');
       });
     }
   </script>
