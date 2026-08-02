@@ -1,0 +1,52 @@
+name: Compilar APK Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/backup-google-drive
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Preparar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Testar sincronização
+        run: npm test
+
+      - name: Preparar projeto Android
+        run: npm run android:sync
+
+      - name: Compilar APK instalável
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Publicar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ponto-App-Pessoal-Android
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
