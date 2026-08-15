@@ -15,6 +15,8 @@ const webFiles = [
   'status-dia.js',
   'rh-ajustes.js',
   'rh-final.js',
+  'folga-compensatoria.js',
+  'restaura-agosto-2026.js',
   'cloud-sync.js',
   'manifest.json',
   'icon.svg',
