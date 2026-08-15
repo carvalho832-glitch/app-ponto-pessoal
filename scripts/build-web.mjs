@@ -13,6 +13,7 @@ const webFiles = [
   'folha-ponto.js',
   'holerite-refinado.js',
   'status-dia.js',
+  'rh-ajustes.js',
   'cloud-sync.js',
   'manifest.json',
   'icon.svg',
