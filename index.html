@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#101623">
   <title>App Ponto Pessoal</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=17">
+  <link rel="stylesheet" href="style.css?v=18">
 </head>
 <body>
   <div class="app">
@@ -59,11 +59,12 @@
   <script src="rh-final.js?v=1"></script>
   <script src="folga-compensatoria.js?v=1"></script>
   <script src="restaura-agosto-2026.js?v=1"></script>
+  <script src="month-tools.js?v=1"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
         const isNative = window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform();
-        if (!isNative) navigator.serviceWorker.register('./sw.js?v=17');
+        if (!isNative) navigator.serviceWorker.register('./sw.js?v=18');
       });
     }
   </script>
