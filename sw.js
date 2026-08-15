@@ -1,4 +1,4 @@
-const CACHE_NAME = 'app-ponto-pessoal-v13';
+const CACHE_NAME = 'app-ponto-pessoal-v14';
 const BASE = '/app-ponto-pessoal/';
 const FILES = [
   BASE,
@@ -11,6 +11,7 @@ const FILES = [
   BASE + 'folha-ponto.js',
   BASE + 'holerite-refinado.js',
   BASE + 'status-dia.js',
+  BASE + 'rh-ajustes.js',
   BASE + 'manifest.json',
   BASE + 'icon.svg'
 ];
@@ -51,6 +52,9 @@ self.addEventListener('fetch', event => {
         }
         if (!body.includes('status-dia.js')) {
           body = body.replace('</body>', '<script src="status-dia.js?v=1"></script></body>');
+        }
+        if (!body.includes('rh-ajustes.js')) {
+          body = body.replace('</body>', '<script src="rh-ajustes.js?v=1"></script></body>');
         }
         return new Response(body, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
       }).catch(() => caches.match(BASE + 'index.html'))
