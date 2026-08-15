@@ -17,6 +17,7 @@ const webFiles = [
   'rh-final.js',
   'folga-compensatoria.js',
   'restaura-agosto-2026.js',
+  'month-tools.js',
   'cloud-sync.js',
   'manifest.json',
   'icon.svg',
