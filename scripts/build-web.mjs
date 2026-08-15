@@ -14,6 +14,7 @@ const webFiles = [
   'holerite-refinado.js',
   'status-dia.js',
   'rh-ajustes.js',
+  'rh-final.js',
   'cloud-sync.js',
   'manifest.json',
   'icon.svg',
