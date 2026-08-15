@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#101623">
   <title>App Ponto Pessoal</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=15">
+  <link rel="stylesheet" href="style.css?v=16">
 </head>
 <body>
   <div class="app">
@@ -57,11 +57,12 @@
   <script src="status-dia.js?v=1"></script>
   <script src="rh-ajustes.js?v=1"></script>
   <script src="rh-final.js?v=1"></script>
+  <script src="folga-compensatoria.js?v=1"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
         const isNative = window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform();
-        if (!isNative) navigator.serviceWorker.register('./sw.js?v=15');
+        if (!isNative) navigator.serviceWorker.register('./sw.js?v=16');
       });
     }
   </script>
