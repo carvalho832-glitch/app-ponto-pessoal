@@ -1,5 +1,7 @@
 apply plugin: 'com.android.application'
 
+def pontoVersionCode = System.getenv("PONTO_VERSION_CODE") ?: "2"
+
 android {
     namespace = "br.com.juliocarvalho.pontoapp"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +9,8 @@ android {
         applicationId "br.com.juliocarvalho.pontoapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode Integer.parseInt(pontoVersionCode)
+        versionName "1.1.${pontoVersionCode}"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,7 +18,21 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+
+    // Chave fixa apenas para builds pessoais/debug. Não usar para publicação em loja.
+    signingConfigs {
+        pontoDebug {
+            storeFile file('../ponto-debug.jks')
+            storePassword 'pontoapp-debug'
+            keyAlias 'pontoapp'
+            keyPassword 'pontoapp-debug'
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig signingConfigs.pontoDebug
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
