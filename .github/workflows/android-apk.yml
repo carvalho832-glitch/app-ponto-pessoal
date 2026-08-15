@@ -16,6 +16,8 @@ jobs:
   build-apk:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      PONTO_VERSION_CODE: ${{ github.run_number }}
 
     steps:
       - name: Baixar código
@@ -41,6 +43,13 @@ jobs:
 
       - name: Preparar projeto Android
         run: npm run android:sync
+
+      - name: Conferir chave fixa de assinatura
+        run: |
+          keytool -list -v \
+            -keystore android/ponto-debug.jks \
+            -storepass pontoapp-debug \
+            -alias pontoapp | grep -E 'Alias name|SHA256|Valid from'
 
       - name: Compilar APK instalável
         working-directory: android
