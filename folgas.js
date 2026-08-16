@@ -1,4 +1,6 @@
 (function () {
+  const LIMITE_FOLGA_MINUTOS = 8 * 60;
+
   function $(id) {
     return document.getElementById(id);
   }
@@ -23,17 +25,38 @@
   }
 
   function initFolgas() {
-    ajustarLabelFolgas();
+    ajustarCardFolgas();
     ativarAtualizacao();
+    criarModalFolgas();
     setTimeout(atualizarResumoComFolgas, 300);
   }
 
-  function ajustarLabelFolgas() {
+  function ajustarCardFolgas() {
     const campo = $('mesFolgas');
-    if (!campo || !campo.parentElement) return;
-    const label = campo.parentElement.querySelector('p');
+    if (!campo) return;
+
+    const card = campo.closest('.card');
+    if (!card) return;
+
+    card.classList.add('folga-card');
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-label', 'Ver detalhes das folgas acumuladas');
+    card.title = 'Toque para ver as datas dos domingos que geraram suas folgas';
+
+    const label = card.querySelector('p');
     if (label) label.textContent = 'Folgas acumuladas';
-    campo.parentElement.title = 'Banco cumulativo: soma 1 folga quando sábado e domingo do mesmo final de semana foram trabalhados.';
+
+    if (card.dataset.folgasAtivo !== '1') {
+      card.dataset.folgasAtivo = '1';
+      card.addEventListener('click', abrirModalFolgas);
+      card.addEventListener('keydown', function (evento) {
+        if (evento.key === 'Enter' || evento.key === ' ') {
+          evento.preventDefault();
+          abrirModalFolgas();
+        }
+      });
+    }
   }
 
   function ativarAtualizacao() {
@@ -45,7 +68,8 @@
       });
     }
 
-    document.addEventListener('click', function () {
+    document.addEventListener('click', function (evento) {
+      if (evento.target && evento.target.closest && evento.target.closest('#folgasModal')) return;
       setTimeout(atualizarResumoComFolgas, 180);
     });
 
@@ -57,7 +81,7 @@
   }
 
   function atualizarResumoComFolgas() {
-    ajustarLabelFolgas();
+    ajustarCardFolgas();
 
     const mesEl = $('mesResumo');
     const mes = (mesEl && mesEl.value) || hojeMesLocal();
@@ -107,66 +131,145 @@
     setText('mesSaldo', formatarSaldoLongoLocal(saldo));
   }
 
-  function calcularFolgasAcumuladas(mesLimite) {
+  function obterFolgasQualificadasAte(mesLimite) {
     const dados = getRegistros();
-    const chaves = Object.keys(dados).sort();
-    if (!chaves.length) return 0;
-
-    let inicio = primeiroSabadoAntesOuIgual(chaves[0]);
     const fim = ultimoDiaDoMes(mesLimite);
-    let total = 0;
 
-    while (inicio <= fim) {
-      const domingo = addDaysISO(inicio, 1);
-      if (domingo <= fim && diaTrabalhado(inicio) && diaTrabalhado(domingo)) {
-        total++;
-      }
-      inicio = addDaysISO(inicio, 7);
-    }
+    return Object.keys(dados)
+      .filter(function (data) {
+        return data <= fim && ehDomingo(data);
+      })
+      .sort()
+      .map(function (data) {
+        const registro = dados[data];
+        if (!registro || typeof calcularDia !== 'function') return null;
 
-    return total;
+        const calculo = calcularDia(registro);
+        const horas = calculo.totalConsiderado || 0;
+
+        if (horas < LIMITE_FOLGA_MINUTOS) return null;
+
+        return {
+          data,
+          minutos: horas,
+          registro,
+          calculo,
+          mes: data.slice(0, 7)
+        };
+      })
+      .filter(Boolean);
+  }
+
+  function calcularFolgasAcumuladas(mesLimite) {
+    return obterFolgasQualificadasAte(mesLimite).length;
   }
 
   function calcularFolgasGanhas(mes) {
-    let total = 0;
-    datasDoMesLocal(mes).forEach(function (data) {
-      const d = new Date(data + 'T12:00:00');
-      if (d.getDay() !== 6) return;
-      const domingo = addDaysISO(data, 1);
-      if (domingo.slice(0, 7) !== mes) return;
-      if (diaTrabalhado(data) && diaTrabalhado(domingo)) total++;
+    return obterFolgasQualificadasAte(mes).filter(function (item) {
+      return item.mes === mes;
+    }).length;
+  }
+
+  function abrirModalFolgas() {
+    const modal = $('folgasModal');
+    if (!modal) return;
+
+    const mes = ($('mesResumo') && $('mesResumo').value) || hojeMesLocal();
+    renderizarModalFolgas(mes);
+    modal.classList.add('ativo');
+    document.body.classList.add('folgas-modal-aberto');
+  }
+
+  function fecharModalFolgas() {
+    const modal = $('folgasModal');
+    if (!modal) return;
+    modal.classList.remove('ativo');
+    document.body.classList.remove('folgas-modal-aberto');
+  }
+
+  function criarModalFolgas() {
+    if ($('folgasModal')) return;
+
+    const modal = document.createElement('div');
+    modal.id = 'folgasModal';
+    modal.className = 'folgas-modal';
+    modal.innerHTML = `
+      <div class="folgas-modal-box" role="dialog" aria-modal="true" aria-labelledby="folgasModalTitulo">
+        <div class="folgas-modal-head">
+          <div>
+            <p class="folgas-kicker">Banco de folgas</p>
+            <h3 id="folgasModalTitulo">Folgas acumuladas</h3>
+          </div>
+          <button type="button" id="btnFecharFolgas" class="ghost folgas-fechar" aria-label="Fechar">×</button>
+        </div>
+        <div id="folgasModalResumo"></div>
+        <div id="folgasModalLista" class="folgas-lista"></div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    $('btnFecharFolgas').addEventListener('click', fecharModalFolgas);
+    modal.addEventListener('click', function (evento) {
+      if (evento.target === modal) fecharModalFolgas();
     });
-    return total;
+
+    document.addEventListener('keydown', function (evento) {
+      if (evento.key === 'Escape') fecharModalFolgas();
+    });
   }
 
-  function primeiroSabadoAntesOuIgual(dataISO) {
-    const d = new Date(dataISO + 'T12:00:00');
-    while (d.getDay() !== 6) d.setDate(d.getDate() - 1);
-    return toISODate(d);
+  function renderizarModalFolgas(mes) {
+    const resumo = $('folgasModalResumo');
+    const lista = $('folgasModalLista');
+    if (!resumo || !lista) return;
+
+    const todas = obterFolgasQualificadasAte(mes);
+    const doMes = todas.filter(function (item) { return item.mes === mes; });
+    const anteriores = todas.length - doMes.length;
+
+    resumo.innerHTML = `
+      <div class="folgas-resumo-grid">
+        <div><span>Acumuladas até ${nomeMesCurto(mes)}</span><b>${todas.length}</b></div>
+        <div><span>Geradas neste mês</span><b>${doMes.length}</b></div>
+      </div>
+      <div class="folgas-regra"><b>Regra:</b> domingo trabalhado com <strong>08:00 ou mais</strong> gera 1 folga. Abaixo de 08:00 não gera.</div>
+    `;
+
+    if (!todas.length) {
+      lista.innerHTML = `
+        <div class="folgas-vazio">
+          <b>Nenhuma folga gerada ainda.</b>
+          <span>Quando um domingo atingir 08:00 de trabalho no espelho de ponto, ele aparecerá aqui.</span>
+        </div>
+      `;
+      return;
+    }
+
+    lista.innerHTML = `
+      <div class="folgas-lista-titulo">Domingos que geraram folga</div>
+      ${todas.slice().reverse().map(function (item) {
+        const destaque = item.mes === mes ? ' destaque' : '';
+        return `
+          <div class="folga-item${destaque}">
+            <div>
+              <b>${formatarDataLocal(item.data)}</b>
+              <small>${diaSemanaNome(item.data)} · ${item.mes === mes ? 'Este mês' : nomeMesCurto(item.mes)}</small>
+            </div>
+            <div class="folga-horas">
+              <strong>${minutosParaHoraLongaLocal(item.minutos)}</strong>
+              <small>trabalhadas</small>
+            </div>
+            <span class="folga-badge">+1 folga</span>
+          </div>
+        `;
+      }).join('')}
+      ${anteriores > 0 ? `<p class="folgas-observacao">O total acima inclui as folgas acumuladas dos meses anteriores.</p>` : ''}
+    `;
   }
 
-  function ultimoDiaDoMes(mes) {
-    const partes = mes.split('-').map(Number);
-    const d = new Date(partes[0], partes[1], 0, 12, 0, 0);
-    return toISODate(d);
-  }
-
-  function diaTrabalhado(data) {
-    const dados = getRegistros();
-    const registro = dados[data];
-    if (!registro || typeof calcularDia !== 'function') return false;
-    const calculo = calcularDia(registro);
-    return calculo.totalConsiderado > 0;
-  }
-
-  function addDaysISO(dataISO, dias) {
-    const d = new Date(dataISO + 'T12:00:00');
-    d.setDate(d.getDate() + dias);
-    return toISODate(d);
-  }
-
-  function toISODate(d) {
-    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  function ehDomingo(dataISO) {
+    return new Date(dataISO + 'T12:00:00').getDay() === 0;
   }
 
   function datasDoMesLocal(mes) {
@@ -183,6 +286,15 @@
     }
 
     return out;
+  }
+
+  function ultimoDiaDoMes(mes) {
+    const partes = mes.split('-').map(Number);
+    return toISODate(new Date(partes[0], partes[1], 0, 12, 0, 0));
+  }
+
+  function toISODate(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
 
   function horarioParaMinutosLocal(horario) {
@@ -208,6 +320,22 @@
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
   }
 
+  function formatarDataLocal(dataISO) {
+    const partes = dataISO.split('-');
+    return partes[2] + '/' + partes[1] + '/' + partes[0];
+  }
+
+  function diaSemanaNome(dataISO) {
+    const nomes = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    return nomes[new Date(dataISO + 'T12:00:00').getDay()];
+  }
+
+  function nomeMesCurto(mes) {
+    const nomes = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    const partes = mes.split('-');
+    return nomes[Number(partes[1]) - 1] + '/' + partes[0];
+  }
+
   function setText(id, valor) {
     const node = $(id);
     if (node) node.textContent = valor;
@@ -216,6 +344,7 @@
   window.calcularFolgasGanhas = calcularFolgasGanhas;
   window.calcularFolgasAcumuladas = calcularFolgasAcumuladas;
   window.atualizarResumoComFolgas = atualizarResumoComFolgas;
+  window.abrirModalFolgas = abrirModalFolgas;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
