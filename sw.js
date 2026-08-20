@@ -1,15 +1,21 @@
-const CACHE_NAME = 'app-ponto-pessoal-v12';
+const CACHE_NAME = 'app-ponto-pessoal-v18';
 const BASE = '/app-ponto-pessoal/';
 const FILES = [
   BASE,
   BASE + 'index.html',
   BASE + 'style.css',
   BASE + 'script.js',
+  BASE + 'cloud-sync.js',
   BASE + 'folgas.js',
   BASE + 'features.js',
   BASE + 'folha-ponto.js',
   BASE + 'holerite-refinado.js',
   BASE + 'status-dia.js',
+  BASE + 'rh-ajustes.js',
+  BASE + 'rh-final.js',
+  BASE + 'folga-compensatoria.js',
+  BASE + 'restaura-agosto-2026.js',
+  BASE + 'month-tools.js',
   BASE + 'manifest.json',
   BASE + 'icon.svg'
 ];
@@ -39,18 +45,15 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       fetch(event.request).then(response => response.text()).then(html => {
         let body = html;
-        if (!body.includes('folgas.js')) {
-          body = body.replace('<script src="features.js', '<script src="folgas.js?v=3"></script>\n  <script src="features.js');
-        }
-        if (!body.includes('folha-ponto.js')) {
-          body = body.replace('<script src="holerite-refinado.js', '<script src="folha-ponto.js?v=2"></script>\n  <script src="holerite-refinado.js');
-        }
-        if (!body.includes('holerite-refinado.js')) {
-          body = body.replace('</body>', '<script src="holerite-refinado.js?v=12"></script></body>');
-        }
-        if (!body.includes('status-dia.js')) {
-          body = body.replace('</body>', '<script src="status-dia.js?v=1"></script></body>');
-        }
+        if (!body.includes('folgas.js')) body = body.replace('<script src="features.js', '<script src="folgas.js?v=3"></script>\n  <script src="features.js');
+        if (!body.includes('folha-ponto.js')) body = body.replace('<script src="holerite-refinado.js', '<script src="folha-ponto.js?v=2"></script>\n  <script src="holerite-refinado.js');
+        if (!body.includes('holerite-refinado.js')) body = body.replace('</body>', '<script src="holerite-refinado.js?v=12"></script></body>');
+        if (!body.includes('status-dia.js')) body = body.replace('</body>', '<script src="status-dia.js?v=1"></script></body>');
+        if (!body.includes('rh-ajustes.js')) body = body.replace('</body>', '<script src="rh-ajustes.js?v=1"></script></body>');
+        if (!body.includes('rh-final.js')) body = body.replace('</body>', '<script src="rh-final.js?v=1"></script></body>');
+        if (!body.includes('folga-compensatoria.js')) body = body.replace('</body>', '<script src="folga-compensatoria.js?v=1"></script></body>');
+        if (!body.includes('restaura-agosto-2026.js')) body = body.replace('</body>', '<script src="restaura-agosto-2026.js?v=1"></script></body>');
+        if (!body.includes('month-tools.js')) body = body.replace('</body>', '<script src="month-tools.js?v=1"></script></body>');
         return new Response(body, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
       }).catch(() => caches.match(BASE + 'index.html'))
     );
