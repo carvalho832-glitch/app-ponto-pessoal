@@ -1,0 +1,29 @@
+name: Temp Fluxo v0.6.3 bridge
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - TRIGGER_FLUXO_V063.txt
+
+permissions:
+  contents: write
+
+jobs:
+  bridge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download and verify APK
+        run: |
+          set -euo pipefail
+          curl -fL --retry 5 --retry-delay 2 'https://tmpfiles.org/dl/wewYrZngEORH/fluxo-v0.6.3.apk' -o Fluxo-v0.6.3.apk
+          echo 'c2a761f85e4d2b61fcf76fcd8848f9340c700ef86d19eb493e9da06d92f7cd9d  Fluxo-v0.6.3.apk' | sha256sum -c -
+      - name: Commit temporary APK
+        run: |
+          git config user.name 'actions-user'
+          git config user.email 'actions@github.com'
+          git add Fluxo-v0.6.3.apk
+          git commit -m 'temp: bridge Fluxo v0.6.3 APK [skip ci]'
+          git push origin HEAD:main
