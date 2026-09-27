@@ -8,6 +8,7 @@ on:
   push:
     branches:
       - agent/backup-google-drive
+      - agent/firebase-auth-backup
 
 permissions:
   contents: read
