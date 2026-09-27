@@ -18,7 +18,7 @@ const webFiles = [
   'folga-compensatoria.js',
   'restaura-agosto-2026.js',
   'month-tools.js',
-  'cloud-sync.js',
+  'firebase-sync.js',
   'manifest.json',
   'icon.svg',
   'sw.js'
