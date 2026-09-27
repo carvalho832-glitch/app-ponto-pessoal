@@ -1,11 +1,11 @@
-const CACHE_NAME = 'app-ponto-pessoal-v18';
+const CACHE_NAME = 'app-ponto-pessoal-v19';
 const BASE = '/app-ponto-pessoal/';
 const FILES = [
   BASE,
   BASE + 'index.html',
   BASE + 'style.css',
   BASE + 'script.js',
-  BASE + 'cloud-sync.js',
+  BASE + 'firebase-sync.js',
   BASE + 'folgas.js',
   BASE + 'features.js',
   BASE + 'folha-ponto.js',
