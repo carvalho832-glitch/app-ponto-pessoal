@@ -6,7 +6,9 @@
     { key: 'saidaFinal', label: 'Saída final' }
   ];
 
-  function $(id) { return document.getElementById(id); }
+  function $(id) {
+    return document.getElementById(id);
+  }
 
   function initMarcacaoUnica() {
     addStyle();
@@ -54,7 +56,7 @@
       .marcacao-fab:disabled{background:#334155;color:#cbd5e1;box-shadow:0 10px 26px #0006;opacity:.92}
       .marcacao-fab small{display:block;font-weight:600;font-size:11px;opacity:.86;line-height:1;margin-top:2px}
       .marcacao-fab .fab-ico{font-size:19px;line-height:1}
-      .ponto.marcacao-destaque{outline:2px solid #22c55e;box-shadow:0 0 0 6px #22c55e22,0 16px 34px #0005;transition:box-shadow .25s, outline .25s}
+      .ponto.marcacao-destaque{outline:2px solid #22c55e;box-shadow:0 0 0 6px #22c55e22,0 16px 34px #0005;transition:box-shadow .25s,outline .25s}
       @media(max-width:380px){.marcacao-status{grid-template-columns:repeat(2,1fr)}.marcacao-actions{grid-template-columns:1fr}.marcacao-fab{left:12px;right:12px;font-size:15px}}
       @media print{.marcacao-fab{display:none!important}}
     `;
@@ -125,7 +127,9 @@
     document.body.appendChild(modal);
     $('btnCancelarEdicaoUnica').addEventListener('click', fecharModalEdicaoUnica);
     $('btnSalvarEdicaoUnica').addEventListener('click', salvarEdicaoUnica);
-    modal.addEventListener('click', function (e) { if (e.target === modal) fecharModalEdicaoUnica(); });
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) fecharModalEdicaoUnica();
+    });
   }
 
   function esconderBotoesIndividuais() {
@@ -147,8 +151,21 @@
   function getRegistroAtual() {
     const data = getDataSelecionada();
     if (typeof registros === 'undefined') return { data: data };
+    if (typeof garantirRegistroDoDia === 'function') {
+      try { garantirRegistroDoDia(); } catch (e) {}
+    }
     if (!registros[data]) {
-      registros[data] = { data: data, entrada: null, saidaDescanso: null, voltaDescanso: null, saidaFinal: null, dia100: false, observacao: '', tipoDia: 'normal', motivoDia: '' };
+      registros[data] = {
+        data: data,
+        entrada: null,
+        saidaDescanso: null,
+        voltaDescanso: null,
+        saidaFinal: null,
+        dia100: false,
+        observacao: '',
+        tipoDia: 'normal',
+        motivoDia: ''
+      };
     }
     return registros[data];
   }
@@ -168,7 +185,8 @@
     const status = $('statusMarcacaoUnica');
     status.innerHTML = CAMPOS.map(function (campo) {
       const classe = registro[campo.key] ? 'ok' : prox && prox.key === campo.key ? 'next' : '';
-      return `<div class="marcacao-step ${classe}">${registro[campo.key] ? '✅ ' : prox && prox.key === campo.key ? '➡️ ' : '• '}${campo.label}</div>`;
+      const simbolo = registro[campo.key] ? '✅ ' : prox && prox.key === campo.key ? '➡️ ' : '• ';
+      return `<div class="marcacao-step ${classe}">${simbolo}${campo.label}</div>`;
     }).join('');
 
     const btn = $('btnMarcarSequencia');
@@ -204,6 +222,17 @@
     texto.innerHTML = 'Marcar ' + prox.label.toLowerCase() + '<small>Batida rápida</small>';
   }
 
+  function campoAnterior(campoKey) {
+    if (campoKey === 'saidaDescanso') return 'entrada';
+    if (campoKey === 'voltaDescanso') return 'saidaDescanso';
+    if (campoKey === 'saidaFinal') return 'voltaDescanso';
+    return null;
+  }
+
+  function dataParaISOlocal(data) {
+    return data.getFullYear() + '-' + String(data.getMonth() + 1).padStart(2, '0') + '-' + String(data.getDate()).padStart(2, '0') + 'T' + String(data.getHours()).padStart(2, '0') + ':' + String(data.getMinutes()).padStart(2, '0') + ':00';
+  }
+
   function criarDataHoraParaCampo(dataISO, campoKey) {
     const agora = new Date();
     const h = String(agora.getHours()).padStart(2, '0');
@@ -215,20 +244,33 @@
     const partes = hora.split(':').map(Number);
     const d = new Date(dataISO + 'T00:00:00');
     d.setHours(partes[0], partes[1], 0, 0);
-    if (campoKey === 'saidaFinal') {
-      const entrada = getRegistroAtual().entrada ? new Date(getRegistroAtual().entrada) : null;
-      if (entrada && d <= entrada) d.setDate(d.getDate() + 1);
+
+    const registro = getRegistroAtual();
+    const anteriorKey = campoAnterior(campoKey);
+    const anterior = anteriorKey && registro[anteriorKey] ? new Date(registro[anteriorKey]) : null;
+    if (anterior) {
+      while (d <= anterior) d.setDate(d.getDate() + 1);
     }
-    return d.toISOString().slice(0, 19);
+
+    return dataParaISOlocal(d);
   }
 
   function marcarProximaBatida() {
     const registro = getRegistroAtual();
     const prox = proximoCampo(registro);
     if (!prox) return;
-    registro[prox.key] = criarDataHoraParaCampo(registro.data || getDataSelecionada(), prox.key);
-    salvarTudo();
-    setTimeout(function () { rolarParaCampo(prox.key); }, 180);
+
+    if (typeof marcarPonto === 'function') {
+      marcarPonto(prox.key);
+    } else {
+      registro[prox.key] = criarDataHoraParaCampo(registro.data || getDataSelecionada(), prox.key);
+      salvarTudo();
+    }
+
+    setTimeout(function () {
+      atualizarPainel();
+      rolarParaCampo(prox.key);
+    }, 180);
   }
 
   function rolarParaCampo(campoKey) {
@@ -264,12 +306,18 @@
   function salvarEdicaoUnica() {
     const campo = $('selectCampoEdicaoUnica').value;
     const hora = $('inputHoraEdicaoUnica').value;
-    if (!hora) { alert('Escolha um horário.'); return; }
+    if (!hora) {
+      alert('Escolha um horário.');
+      return;
+    }
     const registro = getRegistroAtual();
     registro[campo] = criarDataHoraManual(registro.data || getDataSelecionada(), hora, campo);
     salvarTudo();
     fecharModalEdicaoUnica();
-    setTimeout(function () { rolarParaCampo(campo); }, 180);
+    setTimeout(function () {
+      atualizarPainel();
+      rolarParaCampo(campo);
+    }, 180);
   }
 
   function valorHoraCampo(valor) {
@@ -280,21 +328,42 @@
 
   function salvarTudo() {
     try {
-      if (typeof salvarRegistros === 'function') salvarRegistros();
-      else localStorage.setItem('app_ponto_pessoal_registros_v9', JSON.stringify(registros || {}));
+      const registro = getRegistroAtual();
+      if (typeof normalizarRegistro === 'function') normalizarRegistro(registro);
+    } catch (e) {}
+
+    try {
+      if (typeof salvarRegistros === 'function') {
+        salvarRegistros();
+      } else if (typeof registros !== 'undefined') {
+        localStorage.setItem('app_ponto_pessoal_registros_v9', JSON.stringify(registros || {}));
+      }
     } catch (e) {
-      try { localStorage.setItem('app_ponto_pessoal_registros_v9', JSON.stringify(registros || {})); } catch (err) {}
+      try {
+        if (typeof registros !== 'undefined') localStorage.setItem('app_ponto_pessoal_registros_v9', JSON.stringify(registros || {}));
+      } catch (err) {}
     }
 
-    try { if (typeof renderizarHoje === 'function') renderizarHoje(); } catch (e) {}
+    try {
+      if (typeof renderizar === 'function') renderizar(true);
+      else if (typeof renderizarHoje === 'function') renderizarHoje();
+    } catch (e) {}
+
     try { if (typeof renderizarResumoMensal === 'function') renderizarResumoMensal(); } catch (e) {}
-    setTimeout(function () { esconderBotoesIndividuais(); atualizarPainel(); }, 120);
+    try { if (typeof renderizarHistorico === 'function') renderizarHistorico(); } catch (e) {}
+
+    setTimeout(function () {
+      esconderBotoesIndividuais();
+      atualizarPainel();
+    }, 120);
   }
 
   window.__marcacaoUnicaMarcarProxima = marcarProximaBatida;
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () { setTimeout(initMarcacaoUnica, 900); });
+    document.addEventListener('DOMContentLoaded', function () {
+      setTimeout(initMarcacaoUnica, 900);
+    });
   } else {
     setTimeout(initMarcacaoUnica, 900);
   }
