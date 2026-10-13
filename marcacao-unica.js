@@ -51,6 +51,7 @@
       .marcacao-unica-modal.ativo{display:flex}
       .marcacao-unica-modal>div{width:100%;max-width:360px;background:#111a2d;border:1px solid #2b3854;border-radius:18px;padding:15px}
       .marcacao-unica-modal h3{margin:0 0 10px}.marcacao-unica-modal label{display:block;color:#a9b7d6;font-size:13px;margin-top:10px}.marcacao-unica-modal .linha-modal{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+      .marcacao-unica-modal input[type="text"]{font-size:20px;font-weight:700;letter-spacing:.04em}
       .marcacao-fab{position:fixed;left:18px;right:18px;bottom:calc(86px + env(safe-area-inset-bottom));z-index:9990;display:none;align-items:center;justify-content:center;gap:10px;border:0;border-radius:999px;padding:15px 18px;background:#16a34a;color:#fff;font-weight:800;font-size:16px;box-shadow:0 16px 38px #0008,0 0 0 1px #8ff5b766;transform:translateZ(0)}
       .marcacao-fab.ativo{display:flex}
       .marcacao-fab:disabled{background:#334155;color:#cbd5e1;box-shadow:0 10px 26px #0006;opacity:.92}
@@ -116,7 +117,7 @@
           </select>
         </label>
         <label>Novo horário
-          <input type="time" id="inputHoraEdicaoUnica">
+          <input type="text" id="inputHoraEdicaoUnica" inputmode="numeric" autocomplete="off" maxlength="5" placeholder="HH:MM">
         </label>
         <div class="linha-modal">
           <button id="btnCancelarEdicaoUnica" class="ghost">Cancelar</button>
@@ -127,6 +128,13 @@
     document.body.appendChild(modal);
     $('btnCancelarEdicaoUnica').addEventListener('click', fecharModalEdicaoUnica);
     $('btnSalvarEdicaoUnica').addEventListener('click', salvarEdicaoUnica);
+    $('inputHoraEdicaoUnica').addEventListener('input', mascararHoraDigitavel);
+    $('inputHoraEdicaoUnica').addEventListener('focus', function () {
+      const input = $('inputHoraEdicaoUnica');
+      setTimeout(function () {
+        try { input.select(); } catch (e) {}
+      }, 40);
+    });
     modal.addEventListener('click', function (e) {
       if (e.target === modal) fecharModalEdicaoUnica();
     });
@@ -241,7 +249,10 @@
   }
 
   function criarDataHoraManual(dataISO, hora, campoKey) {
-    const partes = hora.split(':').map(Number);
+    const horaNormalizada = normalizarHoraDigitada(hora);
+    if (!horaNormalizada) return null;
+
+    const partes = horaNormalizada.split(':').map(Number);
     const d = new Date(dataISO + 'T00:00:00');
     d.setHours(partes[0], partes[1], 0, 0);
 
@@ -253,6 +264,43 @@
     }
 
     return dataParaISOlocal(d);
+  }
+
+  function mascararHoraDigitavel(e) {
+    const input = e.target;
+    const digitos = String(input.value || '').replace(/\D/g, '').slice(0, 4);
+    if (digitos.length <= 2) {
+      input.value = digitos;
+      return;
+    }
+    input.value = digitos.slice(0, 2) + ':' + digitos.slice(2);
+  }
+
+  function normalizarHoraDigitada(valor) {
+    const texto = String(valor || '').trim();
+    let h = null;
+    let m = null;
+
+    if (/^\d{1,2}:\d{1,2}$/.test(texto)) {
+      const partes = texto.split(':').map(Number);
+      h = partes[0];
+      m = partes[1];
+    } else {
+      const digitos = texto.replace(/\D/g, '');
+      if (digitos.length === 3) {
+        h = Number(digitos.slice(0, 1));
+        m = Number(digitos.slice(1));
+      } else if (digitos.length === 4) {
+        h = Number(digitos.slice(0, 2));
+        m = Number(digitos.slice(2));
+      } else {
+        return '';
+      }
+    }
+
+    if (!Number.isFinite(h) || !Number.isFinite(m)) return '';
+    if (h < 0 || h > 23 || m < 0 || m > 59) return '';
+    return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
   }
 
   function marcarProximaBatida() {
@@ -294,9 +342,16 @@
     const modal = $('modalMarcacaoUnica');
     const registro = getRegistroAtual();
     const prox = proximoCampo(registro) || CAMPOS[0];
+    const input = $('inputHoraEdicaoUnica');
     $('selectCampoEdicaoUnica').value = prox.key;
-    $('inputHoraEdicaoUnica').value = valorHoraCampo(registro[prox.key]);
+    input.value = valorHoraCampo(registro[prox.key]);
     modal.classList.add('ativo');
+    setTimeout(function () {
+      try {
+        input.focus();
+        input.select();
+      } catch (e) {}
+    }, 220);
   }
 
   function fecharModalEdicaoUnica() {
@@ -305,13 +360,17 @@
 
   function salvarEdicaoUnica() {
     const campo = $('selectCampoEdicaoUnica').value;
-    const hora = $('inputHoraEdicaoUnica').value;
+    const hora = normalizarHoraDigitada($('inputHoraEdicaoUnica').value);
     if (!hora) {
-      alert('Escolha um horário.');
+      alert('Digite um horário válido, exemplo: 1530 ou 15:30.');
       return;
     }
     const registro = getRegistroAtual();
     registro[campo] = criarDataHoraManual(registro.data || getDataSelecionada(), hora, campo);
+    if (!registro[campo]) {
+      alert('Digite um horário válido, exemplo: 1530 ou 15:30.');
+      return;
+    }
     salvarTudo();
     fecharModalEdicaoUnica();
     setTimeout(function () {
