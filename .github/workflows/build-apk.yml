@@ -37,6 +37,13 @@ jobs:
           if [ -f descontos-auto.js ]; then cp descontos-auto.js www/; fi
           if [ -f backup-fix.js ]; then cp backup-fix.js www/; fi
 
+      - name: Validate app JavaScript and banco de folgas
+        run: |
+          node --check folgas.js
+          node --check status-dia.js
+          node --check turno-noturno-fix.js
+          node --test tests/banco-folgas.test.cjs
+
       - name: Create Capacitor project
         run: |
           npm init -y
