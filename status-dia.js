@@ -25,7 +25,7 @@
     },
     folga: {
       label: 'Folga',
-      hint: 'Não gera falta. Se houver batidas, conta como EX100%.',
+      hint: 'Folga comum não gasta créditos. Para descontar do banco, use o botão Banco de folgas logo abaixo.',
       badge: '🏖️'
     },
     ajuste: {
@@ -240,6 +240,13 @@
     const r = registroAtualSeguro();
     if (!r || !TIPOS[tipo]) return;
 
+    // Trocar de status cancela o débito de folga, sem apagar batidas.
+    if (tipo !== 'folga' && r[STATUS_KEY] === 'folga' && r.folgaCompensatoriaUsada === true) {
+      r.folgaCompensatoriaUsada = false;
+      delete r.folgaBancoStatusAnterior;
+      delete r.folgaBancoMotivoAnterior;
+      delete r.folgaBancoDia100Anterior;
+    }
     r[STATUS_KEY] = tipo;
 
     if (tipo === 'normal') {
